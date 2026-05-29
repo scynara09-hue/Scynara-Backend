@@ -1,11 +1,9 @@
-import bcrypt from 'bcrypt';
-
-const SALT_ROUNDS = 10;
+import argon2 from 'argon2';
 
 export const hashPassword = async (plain) => {
-  return bcrypt.hash(plain, SALT_ROUNDS);
+  return argon2.hash(plain);
 };
 
 export const comparePassword = async (plain, hash) => {
-  return bcrypt.compare(plain, hash);
+  return argon2.verify(hash, plain);
 };

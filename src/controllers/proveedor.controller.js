@@ -23,11 +23,12 @@ export const getById = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
+    // Inyectamos el id_tienda del token/sesión para evitar que el frontend lo falsifique
     const dataConTienda = { ...req.body, id_tienda: req.user.id_tienda };
     const newProveedor = await ProveedorService.addProveedor(dataConTienda);
     res.status(201).json(newProveedor);
   } catch (error) {
-    next(error);
+    next(error); // Pasa el error de Zod al middleware de manejo de errores
   }
 };
 

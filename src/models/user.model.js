@@ -1,6 +1,5 @@
 import pool from '../config/db.js';
 
-// NUEVO: Buscar el id_admin real usando el id_usuario del token JWT
 export const findAdminByUserId = async (userId) => {
   const [rows] = await pool.query(
     'SELECT id_admin FROM Administrador WHERE id_usuario = ? LIMIT 1',
@@ -9,7 +8,6 @@ export const findAdminByUserId = async (userId) => {
   return rows[0] || null;
 };
 
-// MODIFICADO: Ahora filtramos también por id_tienda
 export const findAllUsers = async (adminUserId = null, tiendaId = null) => {
   if (!adminUserId || !tiendaId) return []; // Seguridad: Requiere ambos datos
 
@@ -38,7 +36,14 @@ export const findUserByEmail = async (email) => {
   return rows[0] || null;
 };
 
-// MODIFICADO: Aseguramos que el usuario pertenezca a la misma tienda
+export const findUserByPhone = async (telefono) => {
+  const [rows] = await pool.query(
+    `SELECT * FROM Usuarios WHERE telefono = ? LIMIT 1`,
+    [telefono]
+  );
+  return rows[0] || null;
+};
+
 export const findUserById = async (id, tiendaId) => {
   if (!tiendaId) return null;
   const [rows] = await pool.query(`
@@ -52,15 +57,14 @@ export const findUserById = async (id, tiendaId) => {
   return rows[0] || null;
 };
 
-// 💡 MAGIA MULTI-TIENDA AQUÍ
 export const createUser = async (user) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
     const {
-      nombre_tienda, direccion_tienda, // Datos de nueva tienda (solo primer registro)
-      id_tienda_existente, // ID si es un empleado/admin secundario heredando la tienda
+      nombre_tienda, direccion_tienda, 
+      id_tienda_existente,
       nombre, apellidos, telefono, email, password, rol, estado,
       id_admin_creador,
       id_admin_padre,
@@ -70,7 +74,6 @@ export const createUser = async (user) => {
 
     let idTiendaFinal = id_tienda_existente;
 
-    // 1. Si vienen datos de tienda nueva, la creamos primero
     if (nombre_tienda) {
       const [tiendaResult] = await connection.query(
         `INSERT INTO Tiendas (nombre, direccion) VALUES (?, ?)`,
@@ -79,7 +82,6 @@ export const createUser = async (user) => {
       idTiendaFinal = tiendaResult.insertId;
     }
 
-    // 2. Insertamos al Usuario con el ID de la tienda (nueva o heredada)
     const [result] = await connection.query(
       `INSERT INTO Usuarios (id_tienda, nombre, telefono, correo, contrasena, rol, estado) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [idTiendaFinal || null, `${nombre} ${apellidos}`, telefono, email, password, rol, estado || 'ACTIVO']
@@ -87,7 +89,6 @@ export const createUser = async (user) => {
 
     const userId = result.insertId;
 
-    // 3. Insertamos datos específicos de Rol
     if (rol === 'EMPLEADO') {
       await connection.query(
         `INSERT INTO Empleado (id_usuario, id_admin_creador, tipo_jornada, horario_entrada, horario_salida) VALUES (?, ?, ?, ?, ?)`,
@@ -101,7 +102,7 @@ export const createUser = async (user) => {
     }
 
     await connection.commit();
-    return { id: userId, id_tienda: idTiendaFinal }; // Devolvemos la tienda también
+    return { id: userId, id_tienda: idTiendaFinal }; 
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -110,13 +111,11 @@ export const createUser = async (user) => {
   }
 };
 
-// MODIFICADO: Protegemos el UPDATE por id_tienda
 export const updateUserById = async (id, tiendaId, data) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Verificamos que el usuario pertenezca a la tienda del admin antes de actualizar
     const [check] = await connection.query('SELECT id_usuario FROM Usuarios WHERE id_usuario = ? AND id_tienda = ?', [id, tiendaId]);
     if (check.length === 0) throw new Error("No tienes permisos para modificar este usuario");
 
@@ -174,13 +173,11 @@ export const updateUserById = async (id, tiendaId, data) => {
   }
 };
 
-// MODIFICADO: Protegemos el DELETE por id_tienda
 export const deleteUserById = async (id, tiendaId) => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Verificamos tienda primero
     const [check] = await connection.query('SELECT id_usuario FROM Usuarios WHERE id_usuario = ? AND id_tienda = ?', [id, tiendaId]);
     if (check.length === 0) throw new Error("No tienes permisos para eliminar este usuario");
 

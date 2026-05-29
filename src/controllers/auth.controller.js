@@ -12,6 +12,14 @@ export const login = async (req, res, next) => {
     const result = await loginUser(req.body);
     res.status(200).json(result);
   } catch (error) {
+    // lo enviamos directamente al frontend.
+    if (error.errors) {
+      return res.status(error.status || 400).json({
+        message: error.message,
+        errors: error.errors
+      });
+    }
+    // Si no tiene "errors", dejamos que tu middleware global lo maneje (o enviamos el 500)
     next(error);
   }
 };
@@ -26,6 +34,13 @@ export const register = async (req, res, next) => {
     const result = await registerUser(req.body, creatorUserId, creatorTiendaId);
     res.status(201).json(result);
   } catch (error) {
+    // 💡 MODIFICACIÓN: Capturamos los errores del formulario de registro
+    if (error.errors) {
+      return res.status(error.status || 400).json({
+        message: error.message,
+        errors: error.errors
+      });
+    }
     next(error);
   }
 }
@@ -52,7 +67,6 @@ export const getUsers = async (req, res, next) => {
     const adminUserId = req.user.sub; // ID del admin logueado
     const tiendaId = req.user.id_tienda; // ID de su tienda
 
-    // Pasamos ambos filtros al servicio
     const users = await getAllUsers(adminUserId, tiendaId);
     res.status(200).json(users);
   } catch (error) {
@@ -65,10 +79,15 @@ export const update = async (req, res, next) => {
     const { id } = req.params;
     const tiendaId = req.user.id_tienda; // Capa de seguridad
 
-    // Inyectamos el ID de la tienda para que el modelo verifique permisos
     const result = await updateUser(id, tiendaId, req.body);
     res.status(200).json(result);
   } catch (error) {
+    if (error.errors) {
+      return res.status(error.status || 400).json({
+        message: error.message,
+        errors: error.errors
+      });
+    }
     res.status(error.status || 500).json({ message: error.message || 'Error al actualizar el usuario' });
   }
 };
@@ -78,7 +97,6 @@ export const remove = async (req, res, next) => {
     const { id } = req.params;
     const tiendaId = req.user.id_tienda; // Capa de seguridad
 
-    // Inyectamos el ID de la tienda para evitar borrados entre sucursales
     const result = await deleteUser(id, tiendaId);
     res.status(200).json(result);
   } catch (error) {

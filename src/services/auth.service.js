@@ -3,6 +3,7 @@ import {
   findUserByEmail,
   createUser,
   findUserById,
+  findUserByPhone,
   findAllUsers,
   updateUserById,
   deleteUserById,
@@ -14,9 +15,14 @@ import { signToken } from '../utils/jwt.js';
 export const loginUser = async (data) => {
   const validation = loginSchema.safeParse(data);
   if (!validation.success) {
-    const errorMessage = validation.error.issues?.[0]?.message || validation.error.errors?.[0]?.message || 'Error de validación';
-    const err = new Error(errorMessage);
+    const formattedErrors = {};
+    validation.error.issues.forEach((issue) => {
+      formattedErrors[issue.path[0]] = issue.message;
+    });
+
+    const err = new Error('Error de validación');
     err.status = 400;
+    err.errors = formattedErrors; 
     throw err;
   }
 
@@ -26,15 +32,15 @@ export const loginUser = async (data) => {
   if (!user || user.estado !== 'ACTIVO' || !(await comparePassword(password, user.contrasena))) {
     const err = new Error('Credenciales inválidas o usuario inactivo');
     err.status = 401;
+    err.errors = { email: 'Revisa tu correo', password: 'O tu contraseña es incorrecta' }; 
     throw err;
   }
 
-  // 💡 NUEVO: Inyectamos el id_tienda en el JWT
   const token = signToken({
     sub: user.id_usuario,
     email: user.correo,
     rol: user.rol,
-    id_tienda: user.id_tienda // ¡Clave para la seguridad!
+    id_tienda: user.id_tienda 
   });
 
   return {
@@ -49,36 +55,35 @@ export const loginUser = async (data) => {
   };
 };
 
-// 💡 NUEVO: Recibimos creatorTiendaId para saber a qué sucursal asignar a los nuevos
 export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
-  // 1. Validación Zod PRIMERO
   const validation = registerSchema.safeParse(data);
   if (!validation.success) {
-    const errorMessage = validation.error.issues?.[0]?.message ||
-      validation.error.errors?.[0]?.message ||
-      'Revisa los datos enviados';
-    const err = new Error(errorMessage);
+    const formattedErrors = {};
+    validation.error.issues.forEach((issue) => {
+      formattedErrors[issue.path[0]] = issue.message;
+    });
+
+    const err = new Error('Revisa los datos enviados');
     err.status = 400;
+    err.errors = formattedErrors; 
     throw err;
   }
 
   const validData = { ...validation.data };
 
-  // 2. Lógica de Registro (Externo vs Interno)
   if (!creatorUserId) {
-    // REGISTRO EXTERNO: Alguien creando una cuenta nueva desde el Login/Register
     validData.rol = 'ADMINISTRADOR';
-    validData.nivel_acceso = 'TOTAL'; // El primer admin tiene acceso total a su sucursal
+    validData.nivel_acceso = 'TOTAL'; 
     validData.id_admin_padre = null;
 
     if (!validData.nombre_tienda) {
       const err = new Error('Se requiere el nombre de la sucursal para un registro nuevo.');
       err.status = 400;
+      err.errors = { nombre_tienda: 'Se requiere el nombre de la sucursal' }; // Asignado al campo
       throw err;
     }
   } else {
-    // REGISTRO INTERNO: Un admin creando un empleado desde el Dashboard
-    validData.id_tienda_existente = creatorTiendaId; // Hereda la tienda del creador
+    validData.id_tienda_existente = creatorTiendaId; 
 
     const adminInfo = await findAdminByUserId(creatorUserId);
 
@@ -88,7 +93,6 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
       throw err;
     }
 
-    // Inyectar IDs de jerarquía
     if (validData.rol === 'EMPLEADO') {
       validData.id_admin_creador = adminInfo.id_admin;
     } else if (validData.rol === 'ADMINISTRADOR') {
@@ -96,16 +100,22 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
     }
   }
 
-  // 5. Verificación de duplicados
   if (await findUserByEmail(validData.email)) {
     const err = new Error('El correo ya está registrado');
     err.status = 409;
+    err.errors = { email: 'Este correo ya está en uso' }; 
+    throw err;
+  }
+
+  if (await findUserByPhone(validData.telefono)) {
+    const err = new Error('El teléfono ya está registrado');
+    err.status = 409;
+    err.errors = { telefono: 'Este número de teléfono ya está en uso' }; 
     throw err;
   }
 
   validData.password = await hashPassword(validData.password);
 
-  // 6. Persistencia (El modelo nos devolverá también el id_tienda asignado)
   const newUser = await createUser(validData);
 
   const token = signToken({
@@ -126,10 +136,6 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
     token
   };
 };
-
-// ==========================================
-// OPERACIONES CRUD (Protegidas por id_tienda)
-// ==========================================
 
 export const getAllUsers = async (adminUserId, tiendaId) => {
   const users = await findAllUsers(adminUserId, tiendaId);
