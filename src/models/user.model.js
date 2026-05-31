@@ -28,6 +28,7 @@ export const findAllUsers = async (adminUserId = null, tiendaId = null) => {
   return rows;
 };
 
+// ─── MANTENEMOS ESTA PARA EL LOGIN ───
 export const findUserByEmail = async (email) => {
   const [rows] = await pool.query(
     `SELECT * FROM Usuarios WHERE correo = ? LIMIT 1`,
@@ -42,6 +43,70 @@ export const findUserByPhone = async (telefono) => {
     [telefono]
   );
   return rows[0] || null;
+};
+
+// ─── NUEVO: VERIFICACIÓN DE DUPLICADOS GLOBALES (USUARIOS, CLIENTES, PROVEEDORES) ───
+export const checkDuplicadosGlobales = async (correo, telefono, excludeId = null) => {
+  const fieldErrors = {};
+
+  // 1. VALIDACIÓN DE CORREO CRUZADA
+  if (correo) {
+    let params = [correo];
+    let excludeUsr = '';
+    
+    // Si estamos editando, excluimos al propio usuario de la búsqueda en su tabla
+    if (excludeId) {
+        excludeUsr = ' AND id_usuario != ?';
+        params.push(excludeId);
+    }
+    
+    // Añadimos el correo dos veces más para las tablas de Clientes y Proveedores
+    params.push(correo, correo);
+
+    const queryEmail = `
+      SELECT 'usuario' AS origen FROM Usuarios WHERE correo = ? ${excludeUsr}
+      UNION
+      SELECT 'cliente' AS origen FROM Clientes WHERE correo = ?
+      UNION
+      SELECT 'proveedor' AS origen FROM Proveedores WHERE correo = ?
+    `;
+
+    const [emailResult] = await pool.query(queryEmail, params);
+    
+    if (emailResult.length > 0) {
+      // Usamos la clave 'email' para que haga match con el Zod de tu frontend
+      fieldErrors.email = `Este correo ya está registrado como ${emailResult[0].origen}.`;
+    }
+  }
+
+  // 2. VALIDACIÓN DE TELÉFONO CRUZADA
+  if (telefono) {
+    let params = [telefono];
+    let excludeUsr = '';
+    
+    if (excludeId) {
+        excludeUsr = ' AND id_usuario != ?';
+        params.push(excludeId);
+    }
+    
+    params.push(telefono, telefono);
+
+    const queryTel = `
+      SELECT 'usuario' AS origen FROM Usuarios WHERE telefono = ? ${excludeUsr}
+      UNION
+      SELECT 'cliente' AS origen FROM Clientes WHERE telefono = ?
+      UNION
+      SELECT 'proveedor' AS origen FROM Proveedores WHERE telefono = ?
+    `;
+
+    const [telResult] = await pool.query(queryTel, params);
+    
+    if (telResult.length > 0) {
+      fieldErrors.telefono = `Este teléfono ya pertenece a un ${telResult[0].origen}.`;
+    }
+  }
+
+  return Object.keys(fieldErrors).length > 0 ? fieldErrors : null;
 };
 
 export const findUserById = async (id, tiendaId) => {

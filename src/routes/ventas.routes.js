@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { 
   getAll, 
   getById, 
-  create 
+  create,
+  cancel // 💡 Importamos el nuevo controlador
 } from '../controllers/venta.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
@@ -12,8 +13,9 @@ const router = Router();
 router.use(verifyToken);
 
 // ─── Rutas de Ventas ───
-router.get('/', getAll);           // Historial de ventas de la tienda
-router.get('/:id', getById);       // Ver el ticket detallado de una venta específica
-router.post('/', create);          // Procesar una nueva venta (carrito)
+router.get('/', getAll);                 
+router.get('/:id', getById);            
+router.post('/', create);                
+router.patch('/:id/cancel', cancel);     
 
 export default router;

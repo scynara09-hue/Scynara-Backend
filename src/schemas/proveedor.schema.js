@@ -11,6 +11,13 @@ export const createProveedorSchema = z.object({
     invalid_type_error: "El ID de la tienda debe ser un número válido",
   }).int().positive('El ID de tienda debe ser un número positivo'),
   
+  // ─── NUEVO CAMPO: ID CATEGORÍA ───
+  id_categoria: z.number({
+    invalid_type_error: "El ID de la categoría debe ser un número",
+  }).int().positive('El ID de la categoría debe ser positivo')
+    .optional()
+    .nullable(),
+  
   nombre: z.string({
     required_error: "El nombre es requerido",
   }).min(2, 'El nombre debe tener al menos 2 caracteres')
@@ -24,6 +31,7 @@ export const createProveedorSchema = z.object({
     
   correo: z.string()
     .email('Formato de correo inválido')
+    .toLowerCase() // <-- Aseguramos minúsculas al crear
     .max(100, 'El correo no puede exceder los 100 caracteres')
     .optional()
     .nullable(),
@@ -44,6 +52,13 @@ export const createProveedorSchema = z.object({
 });
 
 export const updateProveedorSchema = z.object({
+  // ─── NUEVO CAMPO: ID CATEGORÍA ───
+  id_categoria: z.number({
+    invalid_type_error: "El ID de la categoría debe ser un número",
+  }).int().positive('El ID de la categoría debe ser positivo')
+    .optional()
+    .nullable(),
+
   nombre: z.string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'El nombre no puede exceder los 100 caracteres')

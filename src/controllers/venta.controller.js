@@ -44,3 +44,19 @@ export const create = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── CANCELAR VENTA (NUEVO) ───
+export const cancel = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const tiendaId = req.user.id_tienda;
+
+    // 💡 Mandamos el ID de la venta y blindamos con el ID de la tienda del token
+    const result = await VentaService.cancelVenta(id, tiendaId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    // Si la venta ya estaba cancelada o no existe, el modelo lanza el error y cae aquí
+    next(error);
+  }
+};

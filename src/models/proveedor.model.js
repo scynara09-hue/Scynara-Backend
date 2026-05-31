@@ -1,40 +1,90 @@
 import pool from '../config/db.js';
 
+// ─── NUEVA FUNCIÓN: OBTENER CATEGORÍAS ───
+export const findAllCategorias = async () => {
+  const [rows] = await pool.query(
+    'SELECT * FROM Categoria ORDER BY categoria ASC'
+  );
+  return rows;
+};
+
+// ─── VERIFICAR DUPLICADOS GLOBALES (PROVEEDORES, USUARIOS, CLIENTES) ───
 export const checkDuplicadosGlobales = async (correo, telefono, tiendaId, excludeId = null) => {
   const fieldErrors = {};
 
+  // 1. VALIDACIÓN DE CORREO CRUZADA
   if (correo) {
-    let queryProv = 'SELECT id_proveedor FROM Proveedores WHERE id_tienda = ? AND correo = ?';
-    let paramsProv = [tiendaId, correo];
-    if (excludeId) { queryProv += ' AND id_proveedor != ?'; paramsProv.push(excludeId); }
-    const [provEmail] = await pool.query(queryProv, paramsProv);
+    let params = [correo];
+    let excludeProv = '';
+    
+    // Si estamos editando, excluimos al propio proveedor de la búsqueda en su tabla
+    if (excludeId) {
+        excludeProv = ' AND id_proveedor != ?';
+        params.push(excludeId);
+    }
+    
+    // Añadimos el correo dos veces más para las tablas de Usuarios y Clientes
+    params.push(correo, correo);
 
-    const [userEmail] = await pool.query('SELECT id_usuario FROM Usuarios WHERE correo = ?', [correo]);
+    const queryEmail = `
+      SELECT 'proveedor' AS origen FROM Proveedores WHERE correo = ? ${excludeProv}
+      UNION
+      SELECT 'usuario' AS origen FROM Usuarios WHERE correo = ?
+      UNION
+      SELECT 'cliente' AS origen FROM Clientes WHERE correo = ?
+    `;
 
-    if (provEmail.length > 0) {
-      fieldErrors.correo = ["Este correo ya está registrado en otro proveedor de tu sucursal."];
-    } else if (userEmail.length > 0) {
-      fieldErrors.correo = ["Este correo ya está en uso por un usuario/administrador del sistema."];
+    const [emailResult] = await pool.query(queryEmail, params);
+    
+    if (emailResult.length > 0) {
+      // Como estás usando validación por array en tu servicio de proveedores, lo mantenemos igual
+      fieldErrors.correo = [`Este correo ya está registrado como ${emailResult[0].origen}.`];
     }
   }
 
+  // 2. VALIDACIÓN DE TELÉFONO CRUZADA
   if (telefono) {
-    let queryProvTel = 'SELECT id_proveedor FROM Proveedores WHERE id_tienda = ? AND telefono = ?';
-    let paramsProvTel = [tiendaId, telefono];
-    if (excludeId) { queryProvTel += ' AND id_proveedor != ?'; paramsProvTel.push(excludeId); }
-    const [provTel] = await pool.query(queryProvTel, paramsProvTel);
-    const [userTel] = await pool.query('SELECT id_usuario FROM Usuarios WHERE telefono = ?', [telefono]);
-    if (provTel.length > 0) {
-      fieldErrors.telefono = ["Este teléfono ya está registrado en otro proveedor de tu sucursal."];
-    } else if (userTel.length > 0) {
-      fieldErrors.telefono = ["Este teléfono ya pertenece a un usuario del sistema."];
+    let params = [telefono];
+    let excludeProv = '';
+    
+    if (excludeId) {
+        excludeProv = ' AND id_proveedor != ?';
+        params.push(excludeId);
+    }
+    
+    params.push(telefono, telefono);
+
+    const queryTel = `
+      SELECT 'proveedor' AS origen FROM Proveedores WHERE telefono = ? ${excludeProv}
+      UNION
+      SELECT 'usuario' AS origen FROM Usuarios WHERE telefono = ?
+      UNION
+      SELECT 'cliente' AS origen FROM Clientes WHERE telefono = ?
+    `;
+
+    const [telResult] = await pool.query(queryTel, params);
+    
+    if (telResult.length > 0) {
+      fieldErrors.telefono = [`Este teléfono ya pertenece a un ${telResult[0].origen}.`];
     }
   }
+
   return Object.keys(fieldErrors).length > 0 ? fieldErrors : null;
 };
+
+// ─── SE AGREGA LEFT JOIN PARA TRAER EL NOMBRE DE LA CATEGORÍA ───
 export const findAllProveedores = async (tiendaId) => {
   const [rows] = await pool.query(
-    'SELECT * FROM Proveedores WHERE id_tienda = ? ORDER BY id_proveedor DESC',
+    `SELECT 
+      p.*, 
+      c.categoria AS nombre_categoria,
+      COUNT(prod.id_producto) AS total_productos
+     FROM Proveedores p
+     LEFT JOIN Categoria c ON p.id_categoria = c.id_categoria
+     LEFT JOIN Productos prod ON p.id_proveedor = prod.id_proveedor
+     WHERE p.id_tienda = ? 
+     GROUP BY p.id_proveedor
+     ORDER BY p.id_proveedor DESC`,
     [tiendaId]
   );
   return rows;
@@ -42,22 +92,30 @@ export const findAllProveedores = async (tiendaId) => {
 
 export const findProveedorById = async (id, tiendaId) => {
   const [rows] = await pool.query(
-    'SELECT * FROM Proveedores WHERE id_proveedor = ? AND id_tienda = ?',
+    `SELECT 
+      p.*, 
+      c.categoria AS nombre_categoria,
+      COUNT(prod.id_producto) AS total_productos
+     FROM Proveedores p
+     LEFT JOIN Categoria c ON p.id_categoria = c.id_categoria
+     LEFT JOIN Productos prod ON p.id_proveedor = prod.id_proveedor
+     WHERE p.id_proveedor = ? AND p.id_tienda = ?
+     GROUP BY p.id_proveedor`,
     [id, tiendaId]
   );
   return rows[0] || null;
 };
 
+// ─── SE INCLUYE id_categoria EN LA INSERCIÓN ───
 export const createProveedor = async (data) => {
-  // 1. Agregamos 'estado' al destructuring
-  const { id_tienda, nombre, telefono, correo, direccion, estado, tiempo_entregas } = data;
+  const { id_tienda, id_categoria, nombre, telefono, correo, direccion, estado, tiempo_entregas } = data;
   
-  // 2. Insertamos el estado. Si viene null/undefined, MySQL usará el DEFAULT 'ACTIVO'
   const [result] = await pool.query(
-    `INSERT INTO Proveedores (id_tienda, nombre, telefono, correo, direccion, estado, tiempo_entregas) 
-     VALUES (?, ?, ?, ?, ?, COALESCE(?, 'ACTIVO'), ?)`,
+    `INSERT INTO Proveedores (id_tienda, id_categoria, nombre, telefono, correo, direccion, estado, tiempo_entregas) 
+     VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, 'ACTIVO'), ?)`,
     [
       id_tienda, 
+      id_categoria || null, // Se permite null si no seleccionan categoría
       nombre, 
       telefono || null, 
       correo || null, 
@@ -69,18 +127,18 @@ export const createProveedor = async (data) => {
   return result.insertId;
 };
 
+// ─── SE INCLUYE id_categoria EN LA ACTUALIZACIÓN DINÁMICA ───
 export const updateProveedorById = async (id, tiendaId, data) => {
   const fields = [];
   const values = [];
 
-  // 1. Agregamos 'estado' al destructuring
-  const { nombre, telefono, correo, direccion, estado, tiempo_entregas } = data;
+  const { id_categoria, nombre, telefono, correo, direccion, estado, tiempo_entregas } = data;
 
+  if (id_categoria !== undefined) { fields.push('id_categoria = ?'); values.push(id_categoria); }
   if (nombre !== undefined) { fields.push('nombre = ?'); values.push(nombre); }
   if (telefono !== undefined) { fields.push('telefono = ?'); values.push(telefono); }
   if (correo !== undefined) { fields.push('correo = ?'); values.push(correo); }
   if (direccion !== undefined) { fields.push('direccion = ?'); values.push(direccion); }
-  // 2. Agregamos la condición para actualizar el estado
   if (estado !== undefined) { fields.push('estado = ?'); values.push(estado); } 
   if (tiempo_entregas !== undefined) { fields.push('tiempo_entregas = ?'); values.push(tiempo_entregas); }
 
@@ -94,15 +152,13 @@ export const updateProveedorById = async (id, tiendaId, data) => {
 };
 
 export const deleteProveedorById = async (id, tiendaId) => {
-  // 1. CAMBIO CRÍTICO: Transformamos el Hard Delete en un Soft Delete.
   const [result] = await pool.query(
-    "UPDATE Proveedores SET estado = 'INACTIVO' WHERE id_proveedor = ? AND id_tienda = ?", 
+    "DELETE FROM Proveedores WHERE id_proveedor = ? AND id_tienda = ?", 
     [id, tiendaId]
   );
   return result.affectedRows > 0;
 };
 
-// Opcional: Por si en algún momento necesitas una función para borrar el registro de verdad
 export const hardDeleteProveedorById = async (id, tiendaId) => {
   const [result] = await pool.query(
     'DELETE FROM Proveedores WHERE id_proveedor = ? AND id_tienda = ?', 

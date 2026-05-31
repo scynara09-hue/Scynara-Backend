@@ -1,24 +1,49 @@
 import { z } from 'zod';
 
-// Esquema para cada producto dentro de la venta (Detalle de Venta)
 const detalleVentaSchema = z.object({
-  id_producto: z.number().int().positive('ID de producto inválido'),
-  cantidad: z.number().int().positive('La cantidad debe ser mayor a 0'),
-  // El precio al que se vendió en ese momento (por si luego cambia en el catálogo, el historial no se altera)
-  precio_unitario_venta: z.number().min(0, 'El precio no puede ser negativo')
+  id_producto: z
+    .number({ required_error: "El ID del producto es obligatorio" })
+    .int()
+    .positive('ID de producto inválido'),
+    
+  cantidad: z
+    .number({ required_error: "La cantidad es obligatoria" })
+    .int()
+    .positive('La cantidad debe ser mayor a 0'),
+    
+  precio_unitario_venta: z
+    .number({ required_error: "El precio unitario es obligatorio" })
+    .min(0, 'El precio no puede ser negativo')
 });
 
-// Esquema principal para crear una Venta
 export const createVentaSchema = z.object({
-  // 💡 Estos dos los inyectará tu controlador leyendo el req.user
-  id_tienda: z.number().int().positive('ID de tienda inválido'),
-  id_usuario: z.number().int().positive('ID de usuario inválido'),
+  id_tienda: z
+    .number({ required_error: "El ID de la tienda es obligatorio" })
+    .int()
+    .positive('ID de tienda inválido'),
+    
+  id_usuario: z
+    .number({ required_error: "El ID del cajero/usuario es obligatorio" })
+    .int()
+    .positive('ID de usuario inválido'),
 
-  // 💡 Datos que vienen del frontend
-  id_cliente: z.number().int().positive('ID de cliente inválido'),
-  total: z.number().min(0, 'El total no puede ser negativo'),
+  // 🔒 BLOQUEADO: Cliente estrictamente obligatorio
+  id_cliente: z
+    .number({ required_error: "El ID del cliente es obligatorio" })
+    .int()
+    .positive('ID de cliente inválido'),
 
-  // 💡 El carrito de compras (debe tener al menos 1 producto)
-  detalles: z.array(detalleVentaSchema)
-    .min(1, 'La venta debe incluir al menos un producto')
+  metodo_pago: z
+    .enum(['EFECTIVO', 'TARJETA', 'TRANSFERENCIA'], {
+      required_error: "El método de pago es obligatorio",
+      invalid_type_error: "Método de pago no válido (debe ser EFECTIVO, TARJETA o TRANSFERENCIA)"
+    }),
+
+  total: z
+    .number({ required_error: "El total es obligatorio" })
+    .min(0, 'El total no puede ser negativo'),
+
+  detalles: z
+    .array(detalleVentaSchema, { required_error: "Los detalles de la venta son obligatorios" })
+    .min(1, 'La venta debe incluir al menos un producto en el carrito')
 });

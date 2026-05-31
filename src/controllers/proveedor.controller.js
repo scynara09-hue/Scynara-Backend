@@ -1,5 +1,16 @@
 import * as ProveedorService from '../services/proveedor.service.js';
 
+// ─── NUEVA FUNCIÓN: OBTENER CATEGORÍAS ───
+export const getCategorias = async (req, res, next) => {
+  try {
+    // Las categorías son globales, así que no filtramos por tiendaId aquí
+    const categorias = await ProveedorService.getCategoriasList();
+    res.status(200).json(categorias);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAll = async (req, res, next) => {
   try {
     const tiendaId = req.user.id_tienda;

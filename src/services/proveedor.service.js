@@ -1,10 +1,17 @@
 import { createProveedorSchema, updateProveedorSchema } from '../schemas/proveedor.schema.js';
 import * as ProveedorModel from '../models/proveedor.model.js';
 
+// ─── OBTENER CATEGORÍAS ───
+export const getCategoriasList = async () => {
+  return await ProveedorModel.findAllCategorias();
+};
+
+// ─── OBTENER TODOS LOS PROVEEDORES ───
 export const getProveedoresList = async (tiendaId) => {
   return await ProveedorModel.findAllProveedores(tiendaId);
 };
 
+// ─── OBTENER DETALLES DE UN PROVEEDOR ───
 export const getProveedorDetails = async (id, tiendaId) => {
   const proveedor = await ProveedorModel.findProveedorById(id, tiendaId);
   if (!proveedor) {
@@ -15,6 +22,7 @@ export const getProveedorDetails = async (id, tiendaId) => {
   return proveedor;
 };
 
+// ─── CREAR PROVEEDOR ───
 export const addProveedor = async (data) => {
   const validation = createProveedorSchema.safeParse(data);
   
@@ -27,6 +35,7 @@ export const addProveedor = async (data) => {
   
   const { correo, telefono, id_tienda } = validation.data;
 
+  // Validación de reglas de negocio cruzada usando el nuevo modelo con UNION
   if (correo || telefono) {
     const duplicates = await ProveedorModel.checkDuplicadosGlobales(correo, telefono, id_tienda);
     
@@ -46,17 +55,34 @@ export const addProveedor = async (data) => {
   };
 };
 
+// ─── ACTUALIZAR PROVEEDOR ───
 export const modifyProveedor = async (id, tiendaId, data) => {
-  const validation = updateProveedorSchema.safeParse(data);
+  // 💡 BLINDAJE: Fusionamos con id_tienda antes del safeParse para evitar errores de validación 'undefined'
+  const datosCompletos = { ...data, id_tienda: tiendaId };
+
+  const validation = updateProveedorSchema.safeParse(datosCompletos);
   
   if (!validation.success) {
-    const errorMessage = validation.error.issues.map(issue => issue.message).join(', ');
-    const err = new Error(errorMessage);
+    const err = new Error("Error de validación");
     err.status = 400;
     err.details = validation.error.flatten().fieldErrors;
     throw err;
   }
   
+  const { correo, telefono } = validation.data;
+
+  // Validación cruzada en edición excluyendo al proveedor actual
+  if (correo || telefono) {
+    const duplicates = await ProveedorModel.checkDuplicadosGlobales(correo, telefono, tiendaId, id);
+    
+    if (duplicates) {
+      const err = new Error("Datos duplicados");
+      err.status = 400;
+      err.details = duplicates;
+      throw err;
+    }
+  }
+
   const success = await ProveedorModel.updateProveedorById(id, tiendaId, validation.data);
   if (!success) {
     const err = new Error('No se pudo actualizar el proveedor. Es posible que no exista o no pertenezca a esta tienda.');
@@ -67,6 +93,7 @@ export const modifyProveedor = async (id, tiendaId, data) => {
   return { message: 'Proveedor actualizado con éxito' };
 };
 
+// ─── ELIMINAR PROVEEDOR ───
 export const removeProveedor = async (id, tiendaId) => {
   const success = await ProveedorModel.deleteProveedorById(id, tiendaId);
   if (!success) {
@@ -74,5 +101,5 @@ export const removeProveedor = async (id, tiendaId) => {
     err.status = 404;
     throw err;
   }
-  return { message: 'Proveedor desactivado con éxito' };
+  return { message: 'Proveedor eliminado con éxito' };
 };

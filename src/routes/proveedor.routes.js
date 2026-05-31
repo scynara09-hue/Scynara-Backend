@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { 
+  getCategorias, // 👈 Importamos la nueva función
   getAll, 
   getById, 
   create, 
@@ -7,8 +8,6 @@ import {
   remove 
 } from '../controllers/proveedor.controller.js';
 
-// Importa tu middleware que verifica el token JWT
-// (Ajusta la ruta o el nombre según cómo lo tengas en tu proyecto)
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -18,6 +17,11 @@ const router = Router();
 router.use(verifyToken);
 
 // ─── Rutas CRUD de Proveedores ───
+
+// 👇 ESTA DEBE IR PRIMERO 👇
+// Si la pones abajo de /:id, Express pensará que la palabra "categorias" es un ID
+router.get('/categorias', getCategorias); 
+
 router.get('/', getAll);
 router.get('/:id', getById);
 router.post('/', create);

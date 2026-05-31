@@ -3,11 +3,11 @@ import {
   findUserByEmail,
   createUser,
   findUserById,
-  findUserByPhone,
   findAllUsers,
   updateUserById,
   deleteUserById,
-  findAdminByUserId
+  findAdminByUserId,
+  checkDuplicadosGlobales // 💡 Importamos la nueva función
 } from '../models/user.model.js';
 import { hashPassword, comparePassword } from '../utils/hash.js';
 import { signToken } from '../utils/jwt.js';
@@ -79,7 +79,7 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
     if (!validData.nombre_tienda) {
       const err = new Error('Se requiere el nombre de la sucursal para un registro nuevo.');
       err.status = 400;
-      err.errors = { nombre_tienda: 'Se requiere el nombre de la sucursal' }; // Asignado al campo
+      err.errors = { nombre_tienda: 'Se requiere el nombre de la sucursal' }; 
       throw err;
     }
   } else {
@@ -100,17 +100,13 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
     }
   }
 
-  if (await findUserByEmail(validData.email)) {
-    const err = new Error('El correo ya está registrado');
+  // 💡 NUEVO: Validación de reglas de negocio cruzada (Usuarios, Clientes, Proveedores)
+  const duplicados = await checkDuplicadosGlobales(validData.email, validData.telefono);
+  
+  if (duplicados) {
+    const err = new Error('Algunos datos ya están registrados en el sistema');
     err.status = 409;
-    err.errors = { email: 'Este correo ya está en uso' }; 
-    throw err;
-  }
-
-  if (await findUserByPhone(validData.telefono)) {
-    const err = new Error('El teléfono ya está registrado');
-    err.status = 409;
-    err.errors = { telefono: 'Este número de teléfono ya está en uso' }; 
+    err.errors = duplicados; // Retorna { email: "...", telefono: "..." }
     throw err;
   }
 
@@ -154,13 +150,42 @@ export const getProfile = async (userId, tiendaId) => {
 };
 
 export const updateUser = async (userId, tiendaId, data) => {
-  if (data.password && data.password.trim() !== '') {
-    data.password = await hashPassword(data.password);
-  } else {
-    delete data.password;
+  // 1. Validación estricta con Zod implementada
+  const validation = updateSchema.safeParse(data);
+  if (!validation.success) {
+    const formattedErrors = {};
+    validation.error.issues.forEach((issue) => {
+      formattedErrors[issue.path[0]] = issue.message;
+    });
+
+    const err = new Error('Revisa los datos enviados');
+    err.status = 400;
+    err.errors = formattedErrors; 
+    throw err;
   }
 
-  const result = await updateUserById(userId, tiendaId, data);
+  const validData = validation.data;
+
+  // 2. Validación de duplicados excluyendo al propio usuario
+  if (validData.email || validData.telefono) {
+    const duplicados = await checkDuplicadosGlobales(validData.email, validData.telefono, userId);
+    
+    if (duplicados) {
+      const err = new Error('Ya existe otro registro con esos datos');
+      err.status = 409;
+      err.errors = duplicados;
+      throw err;
+    }
+  }
+
+  // 3. Hashear contraseña si fue proporcionada
+  if (validData.password && validData.password.trim() !== '') {
+    validData.password = await hashPassword(validData.password);
+  } else {
+    delete validData.password;
+  }
+
+  const result = await updateUserById(userId, tiendaId, validData);
   if (!result) {
     const err = new Error('No se pudo actualizar el usuario');
     err.status = 500;
