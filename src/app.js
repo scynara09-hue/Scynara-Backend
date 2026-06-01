@@ -7,6 +7,7 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import proveedorRoutes from './routes/proveedor.routes.js';
 import ventaRoutes from './routes/ventas.routes.js';
 import clienteRoutes from './routes/customers.routes.js';
+import evaluacionesRoutes from "./routes/evaluations.routes.js";
 
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/ventas', ventaRoutes);
 app.use('/proveedores', proveedorRoutes);
 app.use("/products", productRoutes);
 app.use('/auth', authRoutes);
+app.use("/evaluaciones", evaluacionesRoutes);
 
 app.use(errorHandler);
 
