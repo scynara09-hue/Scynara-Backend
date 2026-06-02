@@ -1,20 +1,17 @@
 import { crearEvaluacionSchema } from "../schemas/evaluations.schema.js";
 import { createEvaluationService, getPublicEvaluationsService } from "../services/evaluations.service.js";
 
-/**
- * POST /api/evaluaciones
- * Controlador para crear una nueva evaluación (Protegido por JWT)
- */
+
 export const createEvaluation = async (req, res) => {
   try {
-    // 1. Validar el body usando Zod
+    
     const validatedData = crearEvaluacionSchema.parse(req.body);
 
-    // 2. Extraer el id del usuario (En tu token se llama 'sub')
+    
     const userPayload = req.user; 
-    const id_usuario = userPayload?.sub; // 💡 AQUÍ ESTÁ LA CORRECCIÓN
+    const id_usuario = userPayload?.sub; 
 
-    // Si no encontramos un ID válido, cortamos el proceso
+    
     if (!id_usuario) {
       return res.status(401).json({
         success: false,
@@ -22,14 +19,14 @@ export const createEvaluation = async (req, res) => {
       });
     }
 
-    // 3. Pasar los datos limpios al servicio
+    
     const result = await createEvaluationService(
       id_usuario, 
       validatedData.calificacion, 
       validatedData.comentario
     );
 
-    // 4. Responder éxito (201 Created)
+    
     res.status(201).json(result);
 
   } catch (error) {
@@ -47,10 +44,7 @@ export const createEvaluation = async (req, res) => {
     });
   }
 };
-/**
- * GET /api/evaluaciones/publicas
- * Controlador para obtener los testimonios de la Landing Page (Público)
- */
+
 export const getPublicEvaluations = async (req, res) => {
   try {
     const result = await getPublicEvaluationsService();

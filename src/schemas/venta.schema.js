@@ -27,7 +27,7 @@ export const createVentaSchema = z.object({
     .int()
     .positive('ID de usuario inválido'),
 
-  // 🔒 BLOQUEADO: Cliente estrictamente obligatorio
+  
   id_cliente: z
     .number({ required_error: "El ID del cliente es obligatorio" })
     .int()
@@ -41,7 +41,8 @@ export const createVentaSchema = z.object({
 
   total: z
     .number({ required_error: "El total es obligatorio" })
-    .min(0, 'El total no puede ser negativo'),
+    .min(0, 'El total no puede ser negativo')
+    .optional(),
 
   detalles: z
     .array(detalleVentaSchema, { required_error: "Los detalles de la venta son obligatorios" })

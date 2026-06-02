@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-// Esquema para crear un producto nuevo
+
 export const createProductSchema = z.object({
-  // 💡 NUEVO: Requerimos el id_tienda (que el backend inyectará desde el token)
+  
   id_tienda: z.number().int().positive('El ID de la tienda es inválido'),
   
   id_proveedor: z.number().int().positive().nullable().optional(),
@@ -22,10 +22,10 @@ export const createProductSchema = z.object({
   fecha_caducidad: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)').nullable().optional()
 });
 
-// Esquema para actualizar un producto (todos los campos son opcionales)
+
 export const updateProductSchema = z.object({
-  // 💡 En la actualización no permitimos cambiar de tienda, 
-  // el id_tienda se usará solo en el WHERE del modelo, por lo que no hace falta aquí.
+  
+  
   id_proveedor: z.number().int().positive().nullable().optional(),
   id_categoria: z.number().int().positive().nullable().optional(),
   nombre: z.string().min(2).max(100).trim().optional(),

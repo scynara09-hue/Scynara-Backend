@@ -9,7 +9,7 @@ export const findAdminByUserId = async (userId) => {
 };
 
 export const findAllUsers = async (adminUserId = null, tiendaId = null) => {
-  if (!adminUserId || !tiendaId) return []; // Seguridad: Requiere ambos datos
+  if (!adminUserId || !tiendaId) return []; 
 
   const [rows] = await pool.query(`
     SELECT u.*, e.tipo_jornada, e.horario_entrada, e.horario_salida, 
@@ -28,7 +28,7 @@ export const findAllUsers = async (adminUserId = null, tiendaId = null) => {
   return rows;
 };
 
-// ─── MANTENEMOS ESTA PARA EL LOGIN ───
+
 export const findUserByEmail = async (email) => {
   const [rows] = await pool.query(
     `SELECT * FROM Usuarios WHERE correo = ? LIMIT 1`,
@@ -45,22 +45,22 @@ export const findUserByPhone = async (telefono) => {
   return rows[0] || null;
 };
 
-// ─── NUEVO: VERIFICACIÓN DE DUPLICADOS GLOBALES (USUARIOS, CLIENTES, PROVEEDORES) ───
+
 export const checkDuplicadosGlobales = async (correo, telefono, excludeId = null) => {
   const fieldErrors = {};
 
-  // 1. VALIDACIÓN DE CORREO CRUZADA
+  
   if (correo) {
     let params = [correo];
     let excludeUsr = '';
     
-    // Si estamos editando, excluimos al propio usuario de la búsqueda en su tabla
+    
     if (excludeId) {
         excludeUsr = ' AND id_usuario != ?';
         params.push(excludeId);
     }
     
-    // Añadimos el correo dos veces más para las tablas de Clientes y Proveedores
+    
     params.push(correo, correo);
 
     const queryEmail = `
@@ -74,12 +74,12 @@ export const checkDuplicadosGlobales = async (correo, telefono, excludeId = null
     const [emailResult] = await pool.query(queryEmail, params);
     
     if (emailResult.length > 0) {
-      // Usamos la clave 'email' para que haga match con el Zod de tu frontend
+      
       fieldErrors.email = `Este correo ya está registrado como ${emailResult[0].origen}.`;
     }
   }
 
-  // 2. VALIDACIÓN DE TELÉFONO CRUZADA
+  
   if (telefono) {
     let params = [telefono];
     let excludeUsr = '';
@@ -154,7 +154,7 @@ export const createUser = async (user) => {
 
     const userId = result.insertId;
 
-    if (rol === 'EMPLEADO') {
+    if (rol === 'EMPLEADO' || rol === 'INVITADO') {
       await connection.query(
         `INSERT INTO Empleado (id_usuario, id_admin_creador, tipo_jornada, horario_entrada, horario_salida) VALUES (?, ?, ?, ?, ?)`,
         [userId, id_admin_creador, tipo_jornada, horario_entrada, horario_salida]

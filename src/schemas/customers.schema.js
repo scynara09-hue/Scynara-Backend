@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-// Expresión regular oficial para el RFC en México
-// Soporta personas morales (3 letras) y físicas (4 letras) + 6 dígitos de fecha + 3 de homoclave
+
+
 const rfcRegex = /^[A-Z&Ññ]{3,4}\d{6}[A-V1-9][A-Z1-9]\d$/i;
 
 export const createClienteSchema = z.object({
@@ -30,7 +30,7 @@ export const createClienteSchema = z.object({
     })
     .regex(/^\d{10}$/, "El teléfono debe contener exactamente 10 dígitos"),
 
-  // Usamos 'email' porque tu frontend manda: email: form.correo
+  
   email: z
     .string({
       required_error: "El correo es obligatorio",
@@ -42,9 +42,9 @@ export const createClienteSchema = z.object({
     .string()
     .regex(rfcRegex, "Formato de RFC inválido")
     .max(13, "El RFC no puede exceder los 13 caracteres")
-    .nullable() // Permite que el frontend mande null
-    .optional() // Permite que el campo no venga en el JSON
-    .transform((val) => (val === "" ? null : val)), // Si envían un string vacío, lo pasa a null para la BD
+    .nullable() 
+    .optional() 
+    .transform((val) => (val === "" ? null : val)), 
 });
 
 export const updateClienteSchema = z.object({

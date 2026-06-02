@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 
-// ─── NUEVA FUNCIÓN: OBTENER CATEGORÍAS ───
+
 export const findAllCategorias = async () => {
   const [rows] = await pool.query(
     'SELECT * FROM Categoria ORDER BY categoria ASC'
@@ -8,22 +8,22 @@ export const findAllCategorias = async () => {
   return rows;
 };
 
-// ─── VERIFICAR DUPLICADOS GLOBALES (PROVEEDORES, USUARIOS, CLIENTES) ───
+
 export const checkDuplicadosGlobales = async (correo, telefono, tiendaId, excludeId = null) => {
   const fieldErrors = {};
 
-  // 1. VALIDACIÓN DE CORREO CRUZADA
+  
   if (correo) {
     let params = [correo];
     let excludeProv = '';
     
-    // Si estamos editando, excluimos al propio proveedor de la búsqueda en su tabla
+    
     if (excludeId) {
         excludeProv = ' AND id_proveedor != ?';
         params.push(excludeId);
     }
     
-    // Añadimos el correo dos veces más para las tablas de Usuarios y Clientes
+    
     params.push(correo, correo);
 
     const queryEmail = `
@@ -37,12 +37,12 @@ export const checkDuplicadosGlobales = async (correo, telefono, tiendaId, exclud
     const [emailResult] = await pool.query(queryEmail, params);
     
     if (emailResult.length > 0) {
-      // Como estás usando validación por array en tu servicio de proveedores, lo mantenemos igual
+      
       fieldErrors.correo = [`Este correo ya está registrado como ${emailResult[0].origen}.`];
     }
   }
 
-  // 2. VALIDACIÓN DE TELÉFONO CRUZADA
+  
   if (telefono) {
     let params = [telefono];
     let excludeProv = '';
@@ -72,7 +72,7 @@ export const checkDuplicadosGlobales = async (correo, telefono, tiendaId, exclud
   return Object.keys(fieldErrors).length > 0 ? fieldErrors : null;
 };
 
-// ─── SE AGREGA LEFT JOIN PARA TRAER EL NOMBRE DE LA CATEGORÍA ───
+
 export const findAllProveedores = async (tiendaId) => {
   const [rows] = await pool.query(
     `SELECT 
@@ -106,7 +106,7 @@ export const findProveedorById = async (id, tiendaId) => {
   return rows[0] || null;
 };
 
-// ─── SE INCLUYE id_categoria EN LA INSERCIÓN ───
+
 export const createProveedor = async (data) => {
   const { id_tienda, id_categoria, nombre, telefono, correo, direccion, estado, tiempo_entregas } = data;
   
@@ -115,7 +115,7 @@ export const createProveedor = async (data) => {
      VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, 'ACTIVO'), ?)`,
     [
       id_tienda, 
-      id_categoria || null, // Se permite null si no seleccionan categoría
+      id_categoria || null, 
       nombre, 
       telefono || null, 
       correo || null, 
@@ -127,7 +127,7 @@ export const createProveedor = async (data) => {
   return result.insertId;
 };
 
-// ─── SE INCLUYE id_categoria EN LA ACTUALIZACIÓN DINÁMICA ───
+
 export const updateProveedorById = async (id, tiendaId, data) => {
   const fields = [];
   const values = [];

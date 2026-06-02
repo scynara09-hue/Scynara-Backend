@@ -7,7 +7,7 @@ import {
   updateUserById,
   deleteUserById,
   findAdminByUserId,
-  checkDuplicadosGlobales // 💡 Importamos la nueva función
+  checkDuplicadosGlobales 
 } from '../models/user.model.js';
 import { hashPassword, comparePassword } from '../utils/hash.js';
 import { signToken } from '../utils/jwt.js';
@@ -93,20 +93,20 @@ export const registerUser = async (data, creatorUserId, creatorTiendaId) => {
       throw err;
     }
 
-    if (validData.rol === 'EMPLEADO') {
+    if (validData.rol === 'EMPLEADO' || validData.rol === 'INVITADO') {
       validData.id_admin_creador = adminInfo.id_admin;
     } else if (validData.rol === 'ADMINISTRADOR') {
       validData.id_admin_padre = adminInfo.id_admin;
     }
   }
 
-  // 💡 NUEVO: Validación de reglas de negocio cruzada (Usuarios, Clientes, Proveedores)
+  
   const duplicados = await checkDuplicadosGlobales(validData.email, validData.telefono);
   
   if (duplicados) {
     const err = new Error('Algunos datos ya están registrados en el sistema');
     err.status = 409;
-    err.errors = duplicados; // Retorna { email: "...", telefono: "..." }
+    err.errors = duplicados; 
     throw err;
   }
 
@@ -149,8 +149,8 @@ export const getProfile = async (userId, tiendaId) => {
   return userWithoutPassword;
 };
 
-export const updateUser = async (userId, tiendaId, data) => {
-  // 1. Validación estricta con Zod implementada
+export const updateUser = async (userId, tiendaId, data, actor = null) => {
+  
   const validation = updateSchema.safeParse(data);
   if (!validation.success) {
     const formattedErrors = {};
@@ -164,9 +164,31 @@ export const updateUser = async (userId, tiendaId, data) => {
     throw err;
   }
 
-  const validData = validation.data;
+  const validData = { ...validation.data };
+  const actorRole = String(actor?.rol || '').toUpperCase();
+  const actorId = Number(actor?.sub);
+  const targetId = Number(userId);
+  const isAdmin = actorRole === 'ADMINISTRADOR';
 
-  // 2. Validación de duplicados excluyendo al propio usuario
+  if (!isAdmin && actorId !== targetId) {
+    const err = new Error('No tienes permisos para modificar este usuario');
+    err.status = 403;
+    throw err;
+  }
+
+  if (!isAdmin) {
+    delete validData.estado;
+    delete validData.rol;
+    delete validData.tipo_jornada;
+    delete validData.horario_entrada;
+    delete validData.horario_salida;
+    delete validData.nivel_acceso;
+    delete validData.permisos;
+    delete validData.nombre_tienda;
+    delete validData.direccion_tienda;
+  }
+
+  
   if (validData.email || validData.telefono) {
     const duplicados = await checkDuplicadosGlobales(validData.email, validData.telefono, userId);
     
@@ -178,7 +200,7 @@ export const updateUser = async (userId, tiendaId, data) => {
     }
   }
 
-  // 3. Hashear contraseña si fue proporcionada
+  
   if (validData.password && validData.password.trim() !== '') {
     validData.password = await hashPassword(validData.password);
   } else {

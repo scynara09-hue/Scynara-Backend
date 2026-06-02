@@ -1,14 +1,15 @@
 import { Router } from "express";
 import { createEvaluation, getPublicEvaluations } from "../controllers/evaluations.controller.js";
-import { verifyToken } from '../middlewares/auth.middleware.js'; // 💡 Importación correcta
+import { verifyToken } from '../middlewares/auth.middleware.js'; 
+import { preventGuestWrites } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
-// 🌍 RUTA PÚBLICA
+
 router.get("/publicas", getPublicEvaluations);
 
-// 🔒 RUTA PRIVADA
-// 💡 Cambiamos authRequired por verifyToken para que coincida con tu importación
-router.post("/", verifyToken, createEvaluation); 
+
+
+router.post("/", verifyToken, preventGuestWrites, createEvaluation); 
 
 export default router;

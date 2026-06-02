@@ -1,9 +1,9 @@
 import * as ProveedorService from '../services/proveedor.service.js';
 
-// ─── NUEVA FUNCIÓN: OBTENER CATEGORÍAS ───
+
 export const getCategorias = async (req, res, next) => {
   try {
-    // Las categorías son globales, así que no filtramos por tiendaId aquí
+    
     const categorias = await ProveedorService.getCategoriasList();
     res.status(200).json(categorias);
   } catch (error) {
@@ -34,12 +34,12 @@ export const getById = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    // Inyectamos el id_tienda del token/sesión para evitar que el frontend lo falsifique
+    
     const dataConTienda = { ...req.body, id_tienda: req.user.id_tienda };
     const newProveedor = await ProveedorService.addProveedor(dataConTienda);
     res.status(201).json(newProveedor);
   } catch (error) {
-    next(error); // Pasa el error de Zod al middleware de manejo de errores
+    next(error); 
   }
 };
 

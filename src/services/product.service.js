@@ -7,12 +7,12 @@ import {
   deleteProductById
 } from '../models/product.model.js';
 
-// 💡 NUEVO: Recibe tiendaId y lo pasa al modelo
+
 export const getProductsList = async (tiendaId) => {
   return await findAllProducts(tiendaId);
 };
 
-// 💡 NUEVO: Recibe tiendaId para buscar solo en esa sucursal
+
 export const getProductDetails = async (id, tiendaId) => {
   const product = await findProductById(id, tiendaId);
   if (!product) {
@@ -24,9 +24,9 @@ export const getProductDetails = async (id, tiendaId) => {
 };
 
 export const addProduct = async (data) => {
-  // Validación estricta con Zod. 
-  // (Recuerda que tu createProductSchema ahora exige id_tienda, 
-  // el cual inyectaremos desde el controlador dentro de 'data')
+  
+  
+  
   const validation = createProductSchema.safeParse(data);
   if (!validation.success) {
     const errorMessage = validation.error.issues?.[0]?.message || validation.error.errors?.[0]?.message || 'Datos de producto inválidos';
@@ -39,9 +39,9 @@ export const addProduct = async (data) => {
   return { id_producto: productId, ...validation.data };
 };
 
-// 💡 NUEVO: Recibe tiendaId para pasarlo al modelo y asegurar el UPDATE
+
 export const modifyProduct = async (id, tiendaId, data) => {
-  // Validación estricta con Zod (campos opcionales)
+  
   const validation = updateProductSchema.safeParse(data);
   if (!validation.success) {
     const errorMessage = validation.error.issues?.[0]?.message || validation.error.errors?.[0]?.message || 'Datos de producto inválidos';
@@ -59,7 +59,7 @@ export const modifyProduct = async (id, tiendaId, data) => {
   return { message: 'Producto actualizado con éxito' };
 };
 
-// 💡 NUEVO: Recibe tiendaId para pasarlo al modelo y asegurar el DELETE
+
 export const removeProduct = async (id, tiendaId) => {
   const success = await deleteProductById(id, tiendaId);
   if (!success) {

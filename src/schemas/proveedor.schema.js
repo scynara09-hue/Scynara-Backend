@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Definimos el enum por separado para reutilizarlo y mantener consistencia
+
 const EstadoProveedor = z.enum(['ACTIVO', 'INACTIVO'], {
   errorMap: () => ({ message: "El estado solo puede ser 'ACTIVO' o 'INACTIVO'" })
 });
@@ -11,7 +11,7 @@ export const createProveedorSchema = z.object({
     invalid_type_error: "El ID de la tienda debe ser un número válido",
   }).int().positive('El ID de tienda debe ser un número positivo'),
   
-  // ─── NUEVO CAMPO: ID CATEGORÍA ───
+  
   id_categoria: z.number({
     invalid_type_error: "El ID de la categoría debe ser un número",
   }).int().positive('El ID de la categoría debe ser positivo')
@@ -31,7 +31,7 @@ export const createProveedorSchema = z.object({
     
   correo: z.string()
     .email('Formato de correo inválido')
-    .toLowerCase() // <-- Aseguramos minúsculas al crear
+    .toLowerCase() 
     .max(100, 'El correo no puede exceder los 100 caracteres')
     .optional()
     .nullable(),
@@ -41,8 +41,8 @@ export const createProveedorSchema = z.object({
     .optional()
     .nullable(),
     
-  // El estado es opcional en la creación porque la BD tiene un DEFAULT 'ACTIVO'
-  // Pero si el frontend lo envía, validamos que sea correcto.
+  
+  
   estado: EstadoProveedor.optional().default('ACTIVO'),
   
   tiempo_entregas: z.string()
@@ -52,7 +52,7 @@ export const createProveedorSchema = z.object({
 });
 
 export const updateProveedorSchema = z.object({
-  // ─── NUEVO CAMPO: ID CATEGORÍA ───
+  
   id_categoria: z.number({
     invalid_type_error: "El ID de la categoría debe ser un número",
   }).int().positive('El ID de la categoría debe ser positivo')
@@ -82,7 +82,7 @@ export const updateProveedorSchema = z.object({
     .optional()
     .nullable(),
     
-  // En la actualización, solo validamos que si se envía, sea un estado válido.
+  
   estado: EstadoProveedor.optional(),
   
   tiempo_entregas: z.string()

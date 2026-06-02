@@ -12,29 +12,29 @@ export const login = async (req, res, next) => {
     const result = await loginUser(req.body);
     res.status(200).json(result);
   } catch (error) {
-    // lo enviamos directamente al frontend.
+    
     if (error.errors) {
       return res.status(error.status || 400).json({
         message: error.message,
         errors: error.errors
       });
     }
-    // Si no tiene "errors", dejamos que tu middleware global lo maneje (o enviamos el 500)
+    
     next(error);
   }
 };
 
 export const register = async (req, res, next) => {
   try {
-    // Si hay un token válido (registro interno), el middleware inyecta req.user
+    
     const creatorUserId = req.user?.sub;
-    const creatorTiendaId = req.user?.id_tienda; // Extraemos la tienda del creador
+    const creatorTiendaId = req.user?.id_tienda; 
 
-    // Pasamos la tienda del creador al servicio
+    
     const result = await registerUser(req.body, creatorUserId, creatorTiendaId);
     res.status(201).json(result);
   } catch (error) {
-    // 💡 MODIFICACIÓN: Capturamos los errores del formulario de registro
+    
     if (error.errors) {
       return res.status(error.status || 400).json({
         message: error.message,
@@ -58,14 +58,14 @@ export const getMe = async (req, res) => {
 };
 
 
-// ==========================================
-// NUEVOS CONTROLADORES CRUD
-// ==========================================
+
+
+
 
 export const getUsers = async (req, res, next) => {
   try {
-    const adminUserId = req.user.sub; // ID del admin logueado
-    const tiendaId = req.user.id_tienda; // ID de su tienda
+    const adminUserId = req.user.sub; 
+    const tiendaId = req.user.id_tienda; 
 
     const users = await getAllUsers(adminUserId, tiendaId);
     res.status(200).json(users);
@@ -77,9 +77,9 @@ export const getUsers = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const tiendaId = req.user.id_tienda; // Capa de seguridad
+    const tiendaId = req.user.id_tienda; 
 
-    const result = await updateUser(id, tiendaId, req.body);
+    const result = await updateUser(id, tiendaId, req.body, req.user);
     res.status(200).json(result);
   } catch (error) {
     if (error.errors) {
@@ -95,7 +95,7 @@ export const update = async (req, res, next) => {
 export const remove = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const tiendaId = req.user.id_tienda; // Capa de seguridad
+    const tiendaId = req.user.id_tienda; 
 
     const result = await deleteUser(id, tiendaId);
     res.status(200).json(result);

@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 
-// ─── BUSCAR TODOS LOS CLIENTES DE UNA TIENDA ───
+
 export const findAllClientes = async (tiendaId) => {
   const [rows] = await pool.query(
     `SELECT * FROM Clientes 
@@ -11,7 +11,7 @@ export const findAllClientes = async (tiendaId) => {
   return rows;
 };
 
-// ─── BUSCAR UN CLIENTE POR ID ───
+
 export const findClienteById = async (idCliente, tiendaId) => {
   const [rows] = await pool.query(
     `SELECT * FROM Clientes 
@@ -21,12 +21,12 @@ export const findClienteById = async (idCliente, tiendaId) => {
   return rows[0] || null;
 };
 
-// ─── VERIFICAR DUPLICADOS GLOBALES ───
-// 💡 Agregamos 'rfc' como tercer parámetro
+
+
 export const checkDuplicadosCliente = async (correo, telefono, rfc, tiendaId, excludeId = null) => {
   const fieldErrors = {};
 
-  // 1. VALIDACIÓN DE CORREO CRUZADA
+  
   if (correo) {
     let params = [correo];
     let excludeCli = '';
@@ -44,7 +44,7 @@ export const checkDuplicadosCliente = async (correo, telefono, rfc, tiendaId, ex
     if (emailResult.length > 0) fieldErrors.email = `Este correo ya está registrado como ${emailResult[0].origen}.`;
   }
 
-  // 2. VALIDACIÓN DE TELÉFONO CRUZADA
+  
   if (telefono) {
     let params = [telefono];
     let excludeCli = '';
@@ -62,7 +62,7 @@ export const checkDuplicadosCliente = async (correo, telefono, rfc, tiendaId, ex
     if (telResult.length > 0) fieldErrors.telefono = `Este teléfono ya pertenece a un ${telResult[0].origen}.`;
   }
 
-  // 3. VALIDACIÓN DE RFC (Solo en Clientes)
+  
   if (rfc) {
     let params = [rfc];
     let excludeCli = '';
@@ -83,7 +83,7 @@ export const checkDuplicadosCliente = async (correo, telefono, rfc, tiendaId, ex
   return Object.keys(fieldErrors).length > 0 ? fieldErrors : null;
 };
 
-// ─── CREAR NUEVO CLIENTE ───
+
 export const createCliente = async (data) => {
   const { id_tienda, nombre, direccion, telefono, email, RFC } = data;
   
@@ -96,7 +96,7 @@ export const createCliente = async (data) => {
   return result.insertId;
 };
 
-// ─── ACTUALIZAR CLIENTE DINÁMICAMENTE ───
+
 export const updateClienteById = async (idCliente, tiendaId, data) => {
   const fields = [];
   const values = [];
@@ -119,7 +119,7 @@ export const updateClienteById = async (idCliente, tiendaId, data) => {
   return result.affectedRows > 0;
 };
 
-// ─── ELIMINAR CLIENTE ───
+
 export const deleteClienteById = async (idCliente, tiendaId) => {
   const [result] = await pool.query(
     "DELETE FROM Clientes WHERE id_cliente = ? AND id_tienda = ?", 

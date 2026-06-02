@@ -12,11 +12,11 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-// ─── Rutas CRUD de Clientes ───
-router.get('/', getAllClientes);         // Obtener todos los clientes de la tienda
-router.get('/:id', getCliente);          // Obtener un cliente específico
-router.post('/', createCliente);         // Crear un nuevo cliente
-router.put('/:id', updateCliente);       // Actualizar un cliente existente
-router.delete('/:id', deleteCliente);    // Eliminar un cliente
+
+router.get('/', getAllClientes);         
+router.get('/:id', getCliente);          
+router.post('/', createCliente);         
+router.put('/:id', updateCliente);       
+router.delete('/:id', deleteCliente);    
 
 export default router;

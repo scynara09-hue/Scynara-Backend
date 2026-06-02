@@ -1,17 +1,17 @@
 import { createProveedorSchema, updateProveedorSchema } from '../schemas/proveedor.schema.js';
 import * as ProveedorModel from '../models/proveedor.model.js';
 
-// ─── OBTENER CATEGORÍAS ───
+
 export const getCategoriasList = async () => {
   return await ProveedorModel.findAllCategorias();
 };
 
-// ─── OBTENER TODOS LOS PROVEEDORES ───
+
 export const getProveedoresList = async (tiendaId) => {
   return await ProveedorModel.findAllProveedores(tiendaId);
 };
 
-// ─── OBTENER DETALLES DE UN PROVEEDOR ───
+
 export const getProveedorDetails = async (id, tiendaId) => {
   const proveedor = await ProveedorModel.findProveedorById(id, tiendaId);
   if (!proveedor) {
@@ -22,7 +22,7 @@ export const getProveedorDetails = async (id, tiendaId) => {
   return proveedor;
 };
 
-// ─── CREAR PROVEEDOR ───
+
 export const addProveedor = async (data) => {
   const validation = createProveedorSchema.safeParse(data);
   
@@ -35,7 +35,7 @@ export const addProveedor = async (data) => {
   
   const { correo, telefono, id_tienda } = validation.data;
 
-  // Validación de reglas de negocio cruzada usando el nuevo modelo con UNION
+  
   if (correo || telefono) {
     const duplicates = await ProveedorModel.checkDuplicadosGlobales(correo, telefono, id_tienda);
     
@@ -55,9 +55,9 @@ export const addProveedor = async (data) => {
   };
 };
 
-// ─── ACTUALIZAR PROVEEDOR ───
+
 export const modifyProveedor = async (id, tiendaId, data) => {
-  // 💡 BLINDAJE: Fusionamos con id_tienda antes del safeParse para evitar errores de validación 'undefined'
+  
   const datosCompletos = { ...data, id_tienda: tiendaId };
 
   const validation = updateProveedorSchema.safeParse(datosCompletos);
@@ -71,7 +71,7 @@ export const modifyProveedor = async (id, tiendaId, data) => {
   
   const { correo, telefono } = validation.data;
 
-  // Validación cruzada en edición excluyendo al proveedor actual
+  
   if (correo || telefono) {
     const duplicates = await ProveedorModel.checkDuplicadosGlobales(correo, telefono, tiendaId, id);
     
@@ -93,7 +93,7 @@ export const modifyProveedor = async (id, tiendaId, data) => {
   return { message: 'Proveedor actualizado con éxito' };
 };
 
-// ─── ELIMINAR PROVEEDOR ───
+
 export const removeProveedor = async (id, tiendaId) => {
   const success = await ProveedorModel.deleteProveedorById(id, tiendaId);
   if (!success) {

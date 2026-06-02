@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 
-// Obtener todos los productos, filtrando estrictamente por Tienda
+
 export const findAllProducts = async (tiendaId) => {
   const [rows] = await pool.query(`
     SELECT 
@@ -23,7 +23,7 @@ export const findAllProducts = async (tiendaId) => {
   return rows;
 };
 
-// Obtener un producto específico, asegurando que pertenezca a la Tienda
+
 export const findProductById = async (id, tiendaId) => {
   const [rows] = await pool.query(`
     SELECT 
@@ -45,10 +45,10 @@ export const findProductById = async (id, tiendaId) => {
   return rows[0] || null;
 };
 
-// Crear un nuevo producto, enlazándolo obligatoriamente a una Tienda
+
 export const createProduct = async (productData) => {
   const {
-    id_tienda, // 💡 Nuevo campo obligatorio
+    id_tienda, 
     id_proveedor,
     id_categoria,
     nombre,
@@ -77,7 +77,7 @@ export const createProduct = async (productData) => {
   return result.insertId;
 };
 
-// Actualizar un producto dinámicamente, protegido por Tienda
+
 export const updateProductById = async (id, tiendaId, productData) => {
   const fieldsToUpdate = [];
   const values = [];
@@ -102,7 +102,7 @@ export const updateProductById = async (id, tiendaId, productData) => {
 
   if (fieldsToUpdate.length === 0) return true;
 
-  // 💡 Aseguramos la mutación solo si coincide id_producto y id_tienda
+  
   const query = `UPDATE Productos SET ${fieldsToUpdate.join(', ')} WHERE id_producto = ? AND id_tienda = ?`;
   values.push(id, tiendaId);
 
@@ -110,9 +110,9 @@ export const updateProductById = async (id, tiendaId, productData) => {
   return result.affectedRows > 0;
 };
 
-// Eliminar un producto, protegido por Tienda
+
 export const deleteProductById = async (id, tiendaId) => {
-  // 💡 Solo se borra si pertenece a la tienda que lo solicita
+  
   const [result] = await pool.query('DELETE FROM Productos WHERE id_producto = ? AND id_tienda = ?', [id, tiendaId]);
   return result.affectedRows > 0;
 };
