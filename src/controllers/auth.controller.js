@@ -10,6 +10,7 @@ import {
 export const login = async (req, res, next) => {
   try {
     const result = await loginUser(req.body);
+    
     res.status(200).json(result);
   } catch (error) {
     
@@ -45,15 +46,14 @@ export const register = async (req, res, next) => {
   }
 }
 
-export const getMe = async (req, res) => {
+export const getMe = async (req, res, next) => {
   try {
-    const userId = req.user.sub;
+    const userId = req.user.sub; 
     const tiendaId = req.user.id_tienda;
-
-    const userProfile = await getProfile(userId, tiendaId);
-    res.status(200).json(userProfile);
+    const profile = await getProfile(userId, tiendaId);
+    res.status(200).json(profile);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message || 'Error al obtener el perfil' });
+    next(error);
   }
 };
 

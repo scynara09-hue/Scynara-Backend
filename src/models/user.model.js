@@ -110,15 +110,30 @@ export const checkDuplicadosGlobales = async (correo, telefono, excludeId = null
 };
 
 export const findUserById = async (id, tiendaId) => {
-  if (!tiendaId) return null;
-  const [rows] = await pool.query(`
+  // 💡 1. Eliminamos el "if (!tiendaId) return null;" que bloqueaba al invitado de inmediato
+
+  let query = `
     SELECT u.*, e.tipo_jornada, e.horario_entrada, e.horario_salida, e.id_admin_creador,
            a.nivel_acceso, a.permisos 
     FROM Usuarios u 
     LEFT JOIN Empleado e ON u.id_usuario = e.id_usuario
     LEFT JOIN Administrador a ON u.id_usuario = a.id_usuario
-    WHERE u.id_usuario = ? AND u.id_tienda = ? LIMIT 1
-  `, [id, tiendaId]);
+    WHERE u.id_usuario = ?
+  `;
+  
+  const params = [id];
+
+  // 💡 2. Si tiene tienda la filtramos, si no, aceptamos explícitamente que sea NULL
+  if (tiendaId) {
+    query += " AND u.id_tienda = ?";
+    params.push(tiendaId);
+  } else {
+    query += " AND u.id_tienda IS NULL";
+  }
+
+  query += " LIMIT 1";
+
+  const [rows] = await pool.query(query, params);
   return rows[0] || null;
 };
 
