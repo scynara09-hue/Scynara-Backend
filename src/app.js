@@ -16,6 +16,10 @@ import { preventGuestWrites } from './middlewares/role.middleware.js';
 
 const app = express();
 
+// Railway coloca la aplicación detrás de un proxy. Confiar en el primer
+// proxy permite que Express y express-rate-limit obtengan la IP real.
+app.set("trust proxy", 1);
+
 const normalizeOrigin = (origin = "") => origin.trim().replace(/\/+$/, "");
 const configuredOrigins = (
   process.env.FRONTEND_URLS ||
@@ -32,15 +36,39 @@ const allowedOrigins = new Set([
   ...configuredOrigins,
 ]);
 
+const isAllowedVercelOrigin = (origin) => {
+  try {
+    const { protocol, hostname } = new URL(origin);
+
+    return (
+      protocol === "https:" &&
+      hostname.endsWith(".vercel.app") &&
+      (
+        hostname === "scynara-frontend.vercel.app" ||
+        hostname.startsWith("scynara-frontend-")
+      )
+    );
+  } catch {
+    return false;
+  }
+};
+
 const corsOptions = {
   origin(origin, callback) {
     // Las solicitudes sin Origin suelen venir de herramientas, monitoreo
     // o llamadas directas al servidor.
-    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
+    const normalizedOrigin = normalizeOrigin(origin);
+    const isAllowed =
+      !origin ||
+      allowedOrigins.has(normalizedOrigin) ||
+      isAllowedVercelOrigin(normalizedOrigin);
+
+    if (isAllowed) {
       return callback(null, true);
     }
 
-    return callback(new Error("Origen no permitido por CORS"));
+    // No se genera un error 500: simplemente se omiten las cabeceras CORS.
+    return callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
