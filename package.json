@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "seed": "node scripts/seedAdmin.js",
     "seed:demo": "node scripts/seedAdmin.js && node scripts/seedDemoData.js",
+    "seed:demo:api": "node scripts/seedDemoApi.js",
     "db:schema": "node scripts/applySchema.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
