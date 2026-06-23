@@ -147,3 +147,9 @@ A continuación se presenta la documentación visual de la estructura de la base
 <img width="1080" height="711" alt="WhatsApp Image 2026-06-02 at 5 26 43 PM" src="https://github.com/user-attachments/assets/dd246794-e2a6-49d2-b2f0-052c1842e250" />
 
 *Este modelo detalla la estructura física implementada en MySQL, mostrando las tablas, claves primarias (PK), claves foráneas (FK), tipos de datos y relaciones directas.*
+
+---
+
+## Licencia
+
+Este proyecto está publicado bajo la licencia MIT.
