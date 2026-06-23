@@ -16,8 +16,32 @@ import { preventGuestWrites } from './middlewares/role.middleware.js';
 
 const app = express();
 
+const normalizeOrigin = (origin = "") => origin.trim().replace(/\/+$/, "");
+const configuredOrigins = (
+  process.env.FRONTEND_URLS ||
+  process.env.FRONTEND_URL ||
+  ""
+)
+  .split(",")
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "https://scynara-frontend.vercel.app",
+  ...configuredOrigins,
+]);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:5173", 
+  origin(origin, callback) {
+    // Las solicitudes sin Origin suelen venir de herramientas, monitoreo
+    // o llamadas directas al servidor.
+    if (!origin || allowedOrigins.has(normalizeOrigin(origin))) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Origen no permitido por CORS"));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
